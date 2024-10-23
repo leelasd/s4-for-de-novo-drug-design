@@ -2,7 +2,7 @@ from s4dd import S4forDenovoDesign
 from argparse import ArgumentParser
 import os
 if __name__ == "__main__":
-    parser = ArgumentParser('(Multitask) Regression')
+    parser = ArgumentParser('Pretrain an S4 model, fine-tune and generate new molecules')
     parser.add_argument("--model-dir", type=str, default=os.environ["SM_MODEL_DIR"])
     #parser.add_argument("--full-data", type=str, default=os.environ["SM_CHANNEL_DATA_FULL"])
     parser.add_argument("--train", type=str, default=os.environ["SM_CHANNEL_TRAIN"])
@@ -12,8 +12,8 @@ if __name__ == "__main__":
 
     # Create an S4 model with (almost) the same parameters as in the paper.
     s4 = S4forDenovoDesign(
-        n_max_epochs=400,  # This is for only demonstration purposes. Set this to a (much) higher value for actual training. Default: 400.
-        batch_size=2048,  # This is for only demonstration purposes. The value in the paper is 2048.
+        n_max_epochs=3,  # This is for only demonstration purposes. Set this to a (much) higher value for actual training. Default: 400.
+        batch_size=128,  # This is for only demonstration purposes. The value in the paper is 2048.
         device="cuda",  # replace this with "cpu" if you don't have a CUDA-enabled GPU.
     )
     # Pretrain the model on a small subset of ChEMBL
@@ -23,7 +23,7 @@ if __name__ == "__main__":
     )
 
     # save the pretrained model
-    s4.save(f"{args['model_dir']}")
+    s4.save(f"{args['model_dir']}/demo/pretrained_model/")
 
     # Fine-tune the model on a small subset of bioactive molecules
     s4.train(
@@ -32,16 +32,16 @@ if __name__ == "__main__":
     )
 
     # save the fine-tuned model
-    s4.save(f"{args['model_dir']}")
+    s4.save(f"{args['model_dir']}/demo/finetuned_model/")
 
 
     # Design new molecules
     designs, lls = s4.design_molecules(n_designs=128, batch_size=64, temperature=1)
 
     # Save the designs
-    with open(f"{args.output}/designs.smiles", "w") as f:
+    with open(f"{args['output']}/designs.smiles", "w") as f:
         f.write("\n".join(designs))
 
     # Save the log-likelihoods of the designs
-    with open(f"{args.output}/lls.txt", "w") as f:
+    with open(f"{args['output']}/lls.txt", "w") as f:
         f.write("\n".join([str(ll) for ll in lls]))
